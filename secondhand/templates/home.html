@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}หน้าหลัก{% endblock %}
+
+{% block content %}
+<section class="bg-moss text-white">
+  <div class="mx-auto max-w-6xl px-4 py-12 md:py-16">
+    <h1 class="max-w-2xl font-display text-3xl leading-[1.45] md:text-5xl md:leading-[1.4]">
+      ของที่ใครเลิกใช้ อาจเป็นของที่คุณตามหาอยู่
+    </h1>
+    <p class="mt-4 max-w-xl text-white/80">ซื้อขายของมือสองตรงจากผู้ขาย ราคาชัดเจน ไม่ผ่านคนกลาง</p>
+
+    <form method="get" class="mt-8 flex max-w-2xl flex-col gap-2 sm:flex-row">
+      <input type="search" name="q" value="{{ q }}" placeholder="ค้นหาสินค้า เช่น จักรยาน กล้องฟิล์ม"
+             aria-label="ค้นหาสินค้า"
+             class="min-w-0 flex-1 rounded-xl border-0 px-4 py-3 text-ink outline-none focus:ring-2 focus:ring-tag">
+      <select name="category" aria-label="หมวดหมู่"
+              class="rounded-xl border-0 px-4 py-3 text-ink outline-none focus:ring-2 focus:ring-tag">
+        <option value="">ทุกหมวดหมู่</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}" {% if value == cat %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="rounded-xl bg-tag px-5 py-3 font-medium text-ink hover:brightness-95">ค้นหา</button>
+    </form>
+  </div>
+</section>
+
+<section class="mx-auto max-w-6xl px-4 pt-10">
+  <div class="mb-6 flex items-end justify-between">
+    <h2 class="font-display text-xl md:text-2xl">
+      {% if q or cat %}ผลการค้นหา{% if q %} “{{ q }}”{% endif %}{% else %}สินค้าล่าสุด{% endif %}
+    </h2>
+    <p class="text-sm text-stone-500">{{ page.paginator.count }} รายการ</p>
+  </div>
+
+  {% if page.object_list %}
+    <div class="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+      {% for p in page.object_list %}{% include '_product_card.html' %}{% endfor %}
+    </div>
+
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="mt-10 flex items-center justify-center gap-3 text-sm" aria-label="เปลี่ยนหน้า">
+        {% if page.has_previous %}
+          <a href="?{{ qs }}{% if qs %}&{% endif %}page={{ page.previous_page_number }}" class="rounded-lg border border-stone-300 bg-white px-4 py-2 hover:bg-stone-50">ก่อนหน้า</a>
+        {% endif %}
+        <span class="text-stone-500">หน้า {{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a href="?{{ qs }}{% if qs %}&{% endif %}page={{ page.next_page_number }}" class="rounded-lg border border-stone-300 bg-white px-4 py-2 hover:bg-stone-50">ถัดไป</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-16 text-center">
+      <p class="font-display text-lg">{% if q or cat %}ไม่พบสินค้าที่ตรงกับเงื่อนไข{% else %}ยังไม่มีสินค้าลงขาย{% endif %}</p>
+      <p class="mt-2 text-stone-500">{% if q or cat %}ลองเปลี่ยนคำค้นหา หรือ{% endif %}เป็นคนแรกที่ลงขายของในตลาดนี้</p>
+      <a href="{% url 'sell' %}" class="mt-6 inline-block rounded-xl bg-moss px-5 py-2.5 font-medium text-white hover:bg-moss-dark">ลงขายสินค้า</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

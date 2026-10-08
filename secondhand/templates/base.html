@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}หน้าหลัก{% endblock %} | ของดีมีต่อ</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Mitr:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          ink: '#1B2B27',
+          paper: '#F2F4F1',
+          moss: { DEFAULT: '#2F6B4F', dark: '#245340' },
+          tag: '#F4C430',
+          berry: '#B8433A',
+        },
+        fontFamily: {
+          sans: ['"IBM Plex Sans Thai"', 'sans-serif'],
+          display: ['Mitr', '"IBM Plex Sans Thai"', 'sans-serif'],
+        },
+      } },
+    }
+  </script>
+  <style>
+    /* ป้ายราคาแบบแขวนสินค้า — จุดเด่นของดีไซน์ ใช้ซ้ำทุกหน้า */
+    .price-tag {
+      position: relative;
+      display: inline-block;
+      background: #F4C430;
+      color: #1B2B27;
+      font-family: Mitr, sans-serif;
+      padding: .3rem .85rem .3rem 1.6rem;
+      clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+    }
+    .price-tag::before {
+      content: "";
+      position: absolute;
+      left: 11px; top: 50%;
+      width: 6px; height: 6px;
+      border-radius: 9999px;
+      background: #fff;
+      transform: translateY(-50%);
+    }
+    body { line-height: 1.7; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+
+<body class="bg-paper text-ink font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- แถบนำทาง -->
+  <header class="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
+    <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <a href="{% url 'home' %}" class="flex items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-moss">
+        <span class="price-tag text-sm">ของดีมีต่อ</span>
+      </a>
+
+      <!-- เมนูบนจอกว้าง -->
+      <div class="hidden items-center gap-1 md:flex">
+        <a href="{% url 'home' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100">หน้าหลัก</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'orders' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100">คำสั่งซื้อ</a>
+          <a href="{% url 'dashboard' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100">แดชบอร์ด</a>
+          <a href="{% url 'profile' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100">โปรไฟล์</a>
+          <a href="{% url 'sell' %}" class="mx-2 rounded-xl bg-moss px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-moss-dark">ขายสินค้า</a>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <button class="rounded-lg px-3 py-2 text-sm text-stone-500 hover:bg-stone-100">ออกจากระบบ</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}" class="rounded-lg px-3 py-2 text-sm hover:bg-stone-100">เข้าสู่ระบบ</a>
+          <a href="{% url 'register' %}" class="ml-2 rounded-xl bg-moss px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-moss-dark">สมัครสมาชิก</a>
+        {% endif %}
+      </div>
+
+      <!-- ปุ่มเมนูบนมือถือ -->
+      <button id="menu-btn" aria-label="เปิดเมนู" aria-expanded="false"
+              class="rounded-lg p-2 hover:bg-stone-100 md:hidden">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </nav>
+
+    <div id="mobile-menu" class="hidden border-t border-stone-200 bg-white px-4 py-3 md:hidden">
+      <div class="flex flex-col gap-1">
+        <a href="{% url 'home' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">หน้าหลัก</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'sell' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">ขายสินค้า</a>
+          <a href="{% url 'orders' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">คำสั่งซื้อ</a>
+          <a href="{% url 'dashboard' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">แดชบอร์ด</a>
+          <a href="{% url 'profile' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">โปรไฟล์</a>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <button class="w-full rounded-lg px-3 py-2.5 text-left text-stone-500 hover:bg-stone-100">ออกจากระบบ</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">เข้าสู่ระบบ</a>
+          <a href="{% url 'register' %}" class="rounded-lg px-3 py-2.5 hover:bg-stone-100">สมัครสมาชิก</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- ข้อความแจ้งเตือน (messages framework) -->
+  {% if messages %}
+    <div class="mx-auto mt-4 w-full max-w-6xl space-y-2 px-4">
+      {% for message in messages %}
+        <div role="status" class="rounded-xl border px-4 py-3 text-sm
+          {% if message.tags == 'error' %}border-berry/30 bg-berry/10 text-berry{% else %}border-moss/30 bg-moss/10 text-moss-dark{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main class="flex-1">{% block content %}{% endblock %}</main>
+
+  <footer class="mt-16 border-t border-stone-200 bg-white">
+    <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-stone-500">
+      ของดีมีต่อ — ตลาดซื้อขายของมือสอง ส่งต่อของดีให้คนที่ใช้ต่อ
+    </div>
+  </footer>
+
+  <script>
+    // สลับเมนูบนมือถือ
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    btn.addEventListener('click', () => {
+      const open = menu.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', open);
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

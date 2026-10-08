@@ -1,0 +1,21 @@
+{# ส่วนย่อย: การ์ดสินค้า (ใช้ในหน้าหลักและหน้าโปรไฟล์) #}
+{% load static %}
+<a href="{% url 'product_detail' p.pk %}"
+   class="group block overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-moss">
+  <div class="relative aspect-[4/3] overflow-hidden bg-stone-100">
+    {% if p.image %}
+      <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy"
+           class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+    {% endif %}
+    <span class="price-tag absolute bottom-3 left-3 text-sm">฿{{ p.price|floatformat:"0g" }}</span>
+    {% if p.is_sold %}
+      <div class="absolute inset-0 flex items-center justify-center bg-ink/55">
+        <span class="rounded-lg bg-white px-4 py-1.5 font-display text-ink">ขายแล้ว</span>
+      </div>
+    {% endif %}
+  </div>
+  <div class="p-4">
+    <h3 class="line-clamp-1 font-medium">{{ p.name }}</h3>
+    <p class="mt-0.5 text-sm text-stone-500">ผู้ขาย: {{ p.seller.username }}</p>
+  </div>
+</a>
