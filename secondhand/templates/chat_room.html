@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}แชทกับ {{ other.username }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 py-6">
+  <a href="{% url 'chat_list' %}" class="text-sm text-stone-500 hover:text-moss">← กล่องข้อความ</a>
+
+  <div class="mt-3 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+    <!-- หัวห้อง: สินค้าที่คุยกัน -->
+    <a href="{% url 'product_detail' conv.product.pk %}" class="flex items-center gap-3 border-b border-stone-200 p-4 hover:bg-stone-50">
+      <img src="{{ conv.product.image.url }}" alt="" class="h-12 w-12 rounded-xl object-cover">
+      <div class="min-w-0 flex-1">
+        <p class="truncate font-medium">{{ conv.product.name }}</p>
+        <p class="text-sm text-stone-500">คุยกับ {{ other.username }} · ฿{{ conv.product.price|floatformat:"0g" }}{% if conv.product.is_sold %} · ขายแล้ว{% endif %}</p>
+      </div>
+    </a>
+
+    <!-- ข้อความ -->
+    <div id="chat-box" class="flex h-[55vh] flex-col gap-2 overflow-y-auto bg-paper p-4" aria-live="polite">
+      {% for m in chat_messages %}
+        <div data-id="{{ m.id }}" class="flex {% if m.sender_id == user.id %}justify-end{% else %}justify-start{% endif %}">
+          <div class="max-w-[80%] rounded-2xl px-4 py-2 {% if m.sender_id == user.id %}bg-moss text-white{% else %}bg-white border border-stone-200{% endif %}">
+            <p class="whitespace-pre-line break-words">{{ m.body }}</p>
+            <p class="mt-0.5 text-right text-[11px] {% if m.sender_id == user.id %}text-white/70{% else %}text-stone-400{% endif %}">{{ m.created_at|date:"H:i" }}</p>
+          </div>
+        </div>
+      {% empty %}
+        <p id="chat-empty" class="m-auto text-sm text-stone-500">ยังไม่มีข้อความ — ทักทายได้เลย</p>
+      {% endfor %}
+    </div>
+
+    <!-- ช่องพิมพ์ (Enter = ส่ง, Shift+Enter = ขึ้นบรรทัดใหม่) -->
+    <form method="post" id="chat-form" class="flex items-end gap-2 border-t border-stone-200 p-3">
+      {% csrf_token %}
+      <div class="flex-1">{{ form.body }}</div>
+      <button class="rounded-xl bg-moss px-5 py-3 font-medium text-white hover:bg-moss-dark">ส่ง</button>
+    </form>
+    {% if form.body.errors %}<p class="px-4 pb-3 text-sm text-berry">{{ form.body.errors.0 }}</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const box = document.getElementById('chat-box');
+  const form = document.getElementById('chat-form');
+  const input = form.querySelector('textarea');
+  const url = "{% url 'chat_messages' conv.pk %}";
+  let lastId = Math.max(0, ...[...box.querySelectorAll('[data-id]')].map(e => +e.dataset.id));
+
+  box.scrollTop = box.scrollHeight;
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.value.trim()) form.submit(); }
+  });
+
+  function addMessage(m) {
+    document.getElementById('chat-empty')?.remove();
+    const row = document.createElement('div');
+    row.dataset.id = m.id;
+    row.className = 'flex ' + (m.mine ? 'justify-end' : 'justify-start');
+    const bubble = document.createElement('div');
+    bubble.className = 'max-w-[80%] rounded-2xl px-4 py-2 ' +
+      (m.mine ? 'bg-moss text-white' : 'bg-white border border-stone-200');
+    const p = document.createElement('p');
+    p.className = 'whitespace-pre-line break-words';
+    p.textContent = m.body;            // textContent กัน XSS
+    const t = document.createElement('p');
+    t.className = 'mt-0.5 text-right text-[11px] ' + (m.mine ? 'text-white/70' : 'text-stone-400');
+    t.textContent = m.time;
+    bubble.append(p, t); row.append(bubble); box.append(row);
+  }
+
+  // ดึงข้อความใหม่ทุก 3 วินาที (polling) ไม่ต้องรีเฟรชหน้า
+  async function poll() {
+    if (document.hidden) return;
+    try {
+      const res = await fetch(`${url}?after=${lastId}`, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.messages.length) return;
+      const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      data.messages.forEach(m => { addMessage(m); lastId = Math.max(lastId, m.id); });
+      if (atBottom) box.scrollTop = box.scrollHeight;
+    } catch (e) { /* เน็ตหลุดชั่วคราว ลองใหม่รอบหน้า */ }
+  }
+  setInterval(poll, 3000);
+</script>
+{% endblock %}

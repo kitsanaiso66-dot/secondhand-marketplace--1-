@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}แชท{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl px-4 py-10">
+  <h1 class="font-display text-2xl md:text-3xl">ข้อความ</h1>
+
+  {% if rows %}
+    <ul class="mt-6 divide-y divide-stone-200 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      {% for r in rows %}
+        <li>
+          <a href="{% url 'chat_room' r.conv.pk %}" class="flex items-center gap-4 p-4 hover:bg-stone-50">
+            <img src="{{ r.conv.product.image.url }}" alt="" class="h-14 w-14 shrink-0 rounded-xl object-cover">
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium">{{ r.other.username }}
+                <span class="text-sm font-normal text-stone-500">· {% if r.conv.buyer_id == user.id %}ผู้ขาย{% else %}ผู้ซื้อ{% endif %}</span>
+              </p>
+              <p class="truncate text-sm text-stone-500">{{ r.conv.product.name }}</p>
+              <p class="truncate text-sm {% if r.conv.unread %}font-medium text-ink{% else %}text-stone-500{% endif %}">
+                {% if r.conv.last_body %}{{ r.conv.last_body }}{% else %}ยังไม่มีข้อความ{% endif %}
+              </p>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1 text-xs text-stone-500">
+              {% if r.conv.last_at %}<span>{{ r.conv.last_at|date:"j M H:i" }}</span>{% endif %}
+              {% if r.conv.unread %}<span class="rounded-full bg-berry px-2 py-0.5 font-medium text-white">{{ r.conv.unread }}</span>{% endif %}
+            </div>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="mt-6 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-14 text-center">
+      <p class="font-display text-lg">ยังไม่มีข้อความ</p>
+      <p class="mt-1 text-sm text-stone-500">เปิดหน้าสินค้าแล้วกด “แชทกับผู้ขาย” เพื่อเริ่มคุย</p>
+      <a href="{% url 'home' %}" class="mt-5 inline-block rounded-xl bg-moss px-5 py-2.5 font-medium text-white hover:bg-moss-dark">เลือกดูสินค้า</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

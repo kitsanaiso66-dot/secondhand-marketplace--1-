@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Order, Product, User
-
+from .models import Conversation, Message, Order, Product, User
+class MessageInline(admin.TabularInline):
+    model = Message
+    extra = 0
 
 @admin.register(User)
 class ShopUserAdmin(UserAdmin):
@@ -20,3 +22,8 @@ class ProductAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ("id", "buyer", "product", "price", "status", "created_at")
     list_filter = ("status",)
+
+@admin.register(Conversation)
+class ConversationAdmin(admin.ModelAdmin):
+    list_display = ("id", "product", "buyer", "updated_at")
+    inlines = [MessageInline]

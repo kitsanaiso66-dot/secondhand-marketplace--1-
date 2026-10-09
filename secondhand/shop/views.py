@@ -4,15 +4,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, ProtectedError, Q, Sum
+from django.db.models import Count, OuterRef, ProtectedError, Q, Subquery, Sum
 from django.db.models.functions import TruncMonth
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import CheckoutForm, ProductForm, RegisterForm
-from .models import Order, Product, User
+from .forms import CheckoutForm, MessageForm, ProductForm, RegisterForm
+from .models import Conversation, Message, Order, Product, User
 
 THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
                "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
@@ -250,3 +251,85 @@ def register(request):
         messages.success(request, "ยินดีต้อนรับ! สมัครสมาชิกเรียบร้อยแล้ว")
         return redirect("home")
     return render(request, "registration/register.html", {"form": form})
+
+def _get_my_conversation(request, pk):
+    """เฉพาะผู้ซื้อหรือผู้ขายของห้องนั้นเท่านั้น คนอื่นได้ 404"""
+    conv = get_object_or_404(
+        Conversation.objects.select_related("product", "product__seller", "buyer"), pk=pk
+    )
+    if not conv.includes(request.user):
+        raise Http404
+    return conv
+
+
+@login_required
+@require_POST
+def start_chat(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if product.seller_id == request.user.id:
+        messages.error(request, "ไม่สามารถแชทกับตัวเองได้")
+        return redirect("product_detail", pk=pk)
+    conv, _ = Conversation.objects.get_or_create(product=product, buyer=request.user)
+    return redirect("chat_room", pk=conv.pk)
+
+
+@login_required
+def chat_list(request):
+    last = Message.objects.filter(conversation=OuterRef("pk")).order_by("-created_at", "-id")
+    convs = (
+        Conversation.objects.filter(Q(buyer=request.user) | Q(product__seller=request.user))
+        .select_related("product", "product__seller", "buyer")
+        .annotate(
+            last_body=Subquery(last.values("body")[:1]),
+            last_at=Subquery(last.values("created_at")[:1]),
+            unread=Count(
+                "messages",
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=request.user),
+            ),
+        )
+        .order_by("-updated_at")
+    )
+    rows = [{"conv": c, "other": c.other_party(request.user)} for c in convs]
+    return render(request, "chat_list.html", {"rows": rows})
+
+@login_required
+def chat_room(request, pk):
+    conv = _get_my_conversation(request, pk)
+
+    form = MessageForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        Message.objects.create(conversation=conv, sender=request.user, body=form.cleaned_data["body"])
+        Conversation.objects.filter(pk=conv.pk).update(updated_at=timezone.now())
+        return redirect("chat_room", pk=conv.pk)
+
+    conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    context = {
+        "conv": conv,
+        "other": conv.other_party(request.user),
+        "chat_messages": conv.messages.select_related("sender"),
+        "form": form,
+    }
+    return render(request, "chat_room.html", context)
+
+
+@login_required
+def chat_messages(request, pk):
+    """JSON สำหรับ polling ทุก 3 วินาที"""
+    conv = _get_my_conversation(request, pk)
+    try:
+        after = int(request.GET.get("after", 0))
+    except ValueError:
+        after = 0
+    new = list(conv.messages.filter(id__gt=after).select_related("sender"))
+    conv.messages.filter(id__in=[m.id for m in new if m.sender_id != request.user.id]).update(is_read=True)
+    return JsonResponse({
+        "messages": [
+            {
+                "id": m.id,
+                "body": m.body,
+                "mine": m.sender_id == request.user.id,
+                "time": timezone.localtime(m.created_at).strftime("%H:%M"),
+            }
+            for m in new
+        ]
+    })

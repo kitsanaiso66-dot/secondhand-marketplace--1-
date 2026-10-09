@@ -99,3 +99,55 @@ class Order(models.Model):
 
     def __str__(self):
         return f"#{self.pk} {self.buyer} → {self.product}"
+class Conversation(models.Model):
+    """ห้องแชท: ผู้ซื้อ 1 คน คุยกับผู้ขายของสินค้า 1 ชิ้น ได้ 1 ห้อง"""
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="conversations", verbose_name="สินค้า"
+    )
+    buyer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="conversations", verbose_name="ผู้ซื้อ"
+    )
+    created_at = models.DateTimeField("เริ่มคุยเมื่อ", auto_now_add=True)
+    updated_at = models.DateTimeField("ข้อความล่าสุดเมื่อ", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "buyer"], name="unique_chat_per_buyer_product")
+        ]
+        verbose_name = "ห้องแชท"
+        verbose_name_plural = "ห้องแชท"
+
+    def __str__(self):
+        return f"{self.buyer} ↔ {self.product.seller} ({self.product})"
+
+    @property
+    def seller(self):
+        return self.product.seller
+
+    def includes(self, user):
+        return user.is_authenticated and user.id in (self.buyer_id, self.product.seller_id)
+
+    def other_party(self, user):
+        return self.product.seller if user.id == self.buyer_id else self.buyer
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(
+        Conversation, on_delete=models.CASCADE, related_name="messages", verbose_name="ห้องแชท"
+    )
+    sender = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="sent_messages", verbose_name="ผู้ส่ง"
+    )
+    body = models.TextField("ข้อความ", max_length=1000)
+    created_at = models.DateTimeField("ส่งเมื่อ", auto_now_add=True)
+    is_read = models.BooleanField("อ่านแล้ว", default=False)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        verbose_name = "ข้อความ"
+        verbose_name_plural = "ข้อความ"
+
+    def __str__(self):
+        return f"{self.sender}: {self.body[:30]}"

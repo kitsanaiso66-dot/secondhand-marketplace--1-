@@ -6,7 +6,7 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 
-from .models import Product, User
+from .models import Message, Product, User
 
 # คลาส Tailwind ที่ใช้กับช่องกรอกทุกช่อง (กำหนดที่เดียว ใช้ซ้ำทุกฟอร์ม)
 INPUT_CLASS = (
@@ -112,3 +112,17 @@ class CheckoutForm(StyledFormMixin, forms.Form):
         label="ที่อยู่จัดส่ง",
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"}),
     )
+
+class MessageForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ("body",)
+        widgets = {
+            "body": forms.Textarea(attrs={"rows": 1, "maxlength": 1000, "placeholder": "พิมพ์ข้อความ...", "autocomplete": "off"})
+        }
+
+    def clean_body(self):
+        body = self.cleaned_data["body"].strip()
+        if not body:
+            raise forms.ValidationError("กรุณาพิมพ์ข้อความ")
+        return body

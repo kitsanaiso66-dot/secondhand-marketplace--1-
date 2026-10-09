@@ -15,6 +15,10 @@ urlpatterns = [
     path("seller/<str:username>/", views.profile, name="seller_profile"),
     path("orders/", views.orders, name="orders"),
     path("orders/<int:pk>/advance/", views.advance_order, name="advance_order"),
+    path("product/<int:pk>/chat/", views.start_chat, name="start_chat"),
+    path("chats/", views.chat_list, name="chat_list"),
+    path("chats/<int:pk>/", views.chat_room, name="chat_room"),
+    path("chats/<int:pk>/messages/", views.chat_messages, name="chat_messages"),
     path("dashboard/", views.dashboard, name="dashboard"),
     # ระบบยืนยันตัวตน
     path("register/", views.register, name="register"),
